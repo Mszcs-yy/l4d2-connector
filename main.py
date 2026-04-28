@@ -8,11 +8,30 @@ async def root():
     return {"message": "L4D2 Connect API is running!"}
 
 @app.get("/connect")
-async def connect_to_server(server: str):
+@app.get("/connect/{server:path}")   # 新增：支持路径参数 /connect/xxx:xxx
+async def connect_to_server(server: str = None):
+    """
+    支持两种调用方式：
+    1. /connect?server=1.2.3.4:27015
+    2. /connect/1.2.3.4:27015
+    """
+    # 如果是通过路径参数传入
+    if not server and "server" in locals():
+        server = locals().get("server")
+    
+    # 如果是查询参数传入
     if not server:
-        return {"error": "缺少 server 参数，例如 ?server=1.2.3.4:27015"}
+        # 从查询参数中获取
+        from fastapi import Request
+        # 这里我们用依赖注入方式更稳妥，但为了简单，我们直接处理
+        pass
 
-    # 使用更高成功率的协议格式
+    # 兼容处理：如果 server 是 None，尝试从查询参数获取
+    if not server:
+        # 这个函数会被 FastAPI 自动注入 request，我们用简单方式处理
+        return {"error": "缺少服务器地址，请使用 ?server=IP:PORT 或 /connect/IP:PORT"}
+
+    # 生成 Steam 协议链接（使用更高成功率的格式）
     steam_url = f"steam://rungameid/550//+connect {server}"
 
     html_content = f"""
@@ -49,8 +68,7 @@ async def connect_to_server(server: str):
             <p>如果没有自动打开，请点击下方按钮：</p>
             <a href="{steam_url}" class="btn">🚀 手动打开 Steam 连接服务器</a>
             <div style="margin-top: 30px; font-size: 15px; color: #666;">
-                <small>提示：请确保 Steam 客户端已经在后台运行<br>
-                如果还是无法打开，请尝试右键复制链接 → 在 Steam 中打开</small>
+                <small>提示：请确保 Steam 客户端已经在后台运行</small>
             </div>
         </div>
     </body>
